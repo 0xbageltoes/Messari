@@ -6,7 +6,7 @@ import requests
 
 # --------- Constants --------- #
 
-BASE_URL = "https://data.messari.io"
+BASE_URL = "https://api.messari.io"
 
 # --------- Constants --------- #
 
@@ -17,15 +17,15 @@ class Messari:
     All the requests can be made through this class.
     """
 
-    def __init__(self, key=None):
+    def __init__(self, key):
         """
         Initialize the object
         :param key: API key
         """
         self.key = key
         self.session = requests.Session()
-        if self.key:
-            self.session.headers.update({'x-messari-api-key': key})
+        self.session.headers.update({'x-messari-api-key': key})
+        self.session.headers.update({'accept': "application/json"})
 
     def _send_message(self, method, endpoint, params=None, data=None):
         """
@@ -53,209 +53,184 @@ class Messari:
     def get_all_assets(self, **query_params):
         """
         Get the paginated list of all assets and their metrics and profiles.
-        Endpoint: GET /api/v2/assets
 
         :param query_params: dict of query parameters to filter the list
         :return: JSON response
         """
-        path = '/api/v2/assets'
-        if query_params.get('with-profiles', False) and query_params.get('with-metrics', False):
-            path += '?with-metrics&with-profiles'
-        elif query_params.get('with-profiles', False):
-            path += '?with-profiles'
-        elif query_params.get('with-metrics', False):
-            path += '?with-metrics'
-
-        if 'with-metrics' in query_params:
-            del query_params['with-metrics']
-        if 'with-profiles' in query_params:
-            del query_params['with-profiles']
+        path = '/asset/v1/assets'
 
         return self._get(path, params=query_params)
 
-    def get_asset(self, asset_key, fields=None):
+    def get_asset_by_id(self, asset_id: str):
         """
-        Get basic metadata for an asset.
-        Endpoint: GET /api/v1/assets/{assetKey}
-
-        :param asset_key: This "key" can be the asset's ID (unique), slug (unique),
-                or symbol (non-unique)
-        :param fields: string: pare down the returned fields (comma , separated,
-                drill down with a slash /)
-                        example: fields='id,slug,symbol,metrics/market_data/price_usd'
+        Returns the ID, name, symbol, slug, market cap, sector, category, and tags for a single asset.
         :return: JSON response
         """
-        path = '/api/v1/assets/{}'.format(asset_key)
-        param = {
-            'fields': fields
-        }
-        return self._get(path, params=param)
+        path = f'/asset/v1/assets/{asset_id}'
 
-    def get_asset_profile(self, asset_key, fields=None):
-        """
-        Get all of our qualitative information for an asset.
-        Endpoint: GET /api/v2/assets/{assetKey}/profile
-
-        :param asset_key: This "key" can be the asset's ID (unique), slug (unique),
-                or symbol (non-unique)
-        :param fields: string: pare down the returned fields (comma , separated,
-                drill down with a slash /)
-                        example: fields='id,slug,symbol,metrics/market_data/price_usd'
-        :return: JSON response
-        """
-        path = '/api/v2/assets/{}/profile'.format(asset_key)
-
-        param = {
-            'fields': fields
-        }
-
-        return self._get(path, params=param)
-
-    def get_asset_metrics(self, asset_key, fields=None):
-        """
-        Get all of our quantitative metrics for an asset.
-        Endpoint: GET /api/v1/assets/{assetKey}/metrics
-
-        :param asset_key: This "key" can be the asset's ID (unique), slug (unique),
-                or symbol (non-unique)
-        :param fields: string: pare down the returned fields (comma , separated,
-                drill down with a slash /)
-                        example: fields='id,slug,symbol,metrics/market_data/price_usd'
-        :return: JSON response
-        """
-        path = '/api/v1/assets/{}/metrics'.format(asset_key)
-        param = {
-            'fields': fields
-        }
-
-        return self._get(path, params=param)
-
-    def get_asset_market_data(self, asset_key, fields=None):
-        """
-        Get the latest market data for an asset.
-        This data is also included in the metrics endpoint,
-        but if all you need is market-data, use this.
-        Endpoint: GET /api/v1/assets/{assetKey}/metrics/market-data
-
-        :param asset_key: This "key" can be the asset's ID (unique), slug (unique),
-                or symbol (non-unique)
-        :param fields: string: pare down the returned fields (comma , separated,
-                drill down with a slash /)
-                        example: fields='id,slug,symbol,metrics/market_data/price_usd'
-        :return: JSON response
-        """
-        path = '/api/v1/assets/{}/metrics/market-data'.format(asset_key)
-        param = {
-            'fields': fields
-        }
-
-        return self._get(path, params=param)
-
-    def list_asset_timeseries_metric_ids(self):
-        """
-        Lists all of the available timeseries metric IDs for assets.
-        Endpoint: GET https://data.messari.io/api/v1/assets/metrics
-
-        :return: JSON response
-        """
-        path = '/api/v1/assets/metrics'
         return self._get(path)
 
-    def get_asset_timeseries(self, asset_key, metric_id, **query_params):
+    def get_market_data_by_asset(self, asset_id: str):
         """
-        Retrieve historical timeseries data for an asset.
-        You can specify the range of what points will be returned
-        using (begin, end, start, before, after) query parameters.
-        All range parameters are inclusive of the specified date.
-
-        Endpoint: GET /api/v1/assets/{assetKey}/metrics/{metric_id}/time-series
-
-        :param asset_key: This "key" can be the asset's ID (unique), slug (unique),
-                or symbol (non-unique)
-        :param metric_id: specifies which timeseries will be returned.
-        :param query_params: dict of query parameters to filter the list
+        Returns market data for a specific asset.
         :return: JSON response
         """
-        path = '/api/v1/assets/{}/metrics/{}/time-series'.format(asset_key, metric_id)
-        return self._get(path, params=query_params)
+        path = f'/marketdata/v1/assets/{asset_id}/price'
 
-    def get_all_markets(self, fields=None):
+        return self._get(path)
+
+    def get_timeseries_by_asset(self, asset_id: str, startTime: str, endTime: str, interval: str = None, vwapType: str = None):
         """
-        Get the list of all exchanges and pairs that our WebSocket-based
-        market real-time market data API supports.
-        Endpoint: GET /api/v1/markets
+        Lists all the available timeseries for asset.
 
-        :param fields: string: pare down the returned fields (comma , separated,
-                drill down with a slash /)
-                        example: fields='id,slug,symbol,metrics/market_data/price_usd'
         :return: JSON response
         """
-        path = '/api/v1/markets'
-        param = {
-            'fields': fields
-        }
-
-        return self._get(path, params=param)
-
-    def get_market_timeseries(self, market_key, metric_id, **query_params):
-        """
-        Retrieve historical timeseries data for a market.
-
-        Endpoint: GET /api/v1/markets/{assetKey}/metrics/{metric_id}/time-series
-
-        :param market_key: This "key" can be the asset's ID (unique), slug (unique),
-                or symbol (non-unique)
-        :param metric_id: The metricID is a unique identifier which determines which
-                columns are returned by time-series endpoints. For a list of valid
-                metric ids, check the API response at https://data.messari.io/api/assets/metrics.
-        :param query_params: dict of query parameters to filter the list
-        :return: JSON response
-        """
-        path = '/api/v1/markets/{}/metrics/{}/time-series'.format(market_key, metric_id)
-        return self._get(path, params=query_params)
-
-    def get_all_news(self, page=None, fields=None):
-        """
-        Get the latest (paginated) news and analysis for all assets.
-
-        Endpoint: GET /api/v1/news
-
-        :param page: Page number, starts at 1. Increment to paginate through
-                results (until result is empty array)
-        :param fields: string: pare down the returned fields (comma , separated,
-                drill down with a slash /)
-                        example: fields='id,slug,symbol,metrics/market_data/price_usd'
-        :return: JSON response
-        """
-        path = '/api/v1/news'
+        path = f'/marketdata/v1/assets/{asset_id}/price/time-series'
         params = {
-            'fields': fields
+            'interval': interval,
+            'vwapType': vwapType,
+            'startTime': startTime,
+            'endTime': endTime,
         }
-        if page:
-            params['page'] = page
+        return self._get(path, params=params)
+
+    def get_all_time_high(self):
+        """
+        Returns a list of all time high data for all assets.
+        """
+        path = '/marketdata/v1/assets/ath'
+
+        return self._get(path)
+
+    def get_all_time_high_by_asset(self, asset_id):
+        """
+        Returns a single assets ATH data.
+        """
+        path = f'/marketdata/v1/assets/{asset_id}/ath'
+
+        return self._get(path)
+
+    def get_roi(self):
+        """
+        Returns a list ROI data for all assets.
+        """
+        path = f'/marketdata/v1/assets/roi'
+
+        return self._get(path)
+
+    def get_roi_by_asset(self, asset_id):
+        """
+        Returns a single assets ROI data.
+        """
+        path = f'/marketdata/v1/assets/{asset_id}/roi'
+
+        return self._get(path)
+
+    def get_markets(self,
+                    exchangeId: str = None,
+                    baseAssetId: str = None,
+                    quoteAssetId: str = None,
+                    volumeAbove: str = None,
+                    volumeBelow: str = None,
+                    vwapAbove: str = None,
+                    vwapBelow: str = None
+                    ):
+        """
+        Returns a list of market specific data for all markets.
+        """
+        path = f'/marketdata/v1/markets'
+
+        params = {
+            'exchangeId': exchangeId,
+            'baseAssetId': baseAssetId,
+            'quoteAssetId': quoteAssetId,
+            'volumeAbove': volumeAbove,
+            'volumeBelow': volumeBelow,
+            'vwapAbove': vwapAbove,
+            'vwapBelow': vwapBelow
+        }
 
         return self._get(path, params=params)
 
-    def get_news_for_asset(self, asset_key, page=None, fields=None):
+    def get_market(self, market_id: str):
         """
-        Get the latest (paginated) news and analysis for all assets.
-
-        Endpoint: GET /api/v1/news/{asset_key}
-
-        :param asset_key: This "key" can be the asset's ID (unique), slug (unique),
-                or symbol (non-unique)
-        :param page: Page number, starts at 1. Increment to paginate through results
-                (until result is empty array)
-        :param fields: string: pare down the returned fields (comma , separated,
-                drill down with a slash /)
-                        example: fields='id,slug,symbol,metrics/market_data/price_usd'
-        :return: JSON response
+        Returns a list of market specific data for one market.
         """
-        path = '/api/v1/news/{}'.format(asset_key)
+        path = f'/marketdata/v1/markets/{market_id}'
+
+        return self._get(path)
+
+    def get_timeseries_by_market(
+            self,
+            market_id: str,
+            startTime: str,
+            endTime: str,
+            interval: str = None,
+            denominatedIn: str = None
+    ):
+        """
+        Returns timeseries price and volume data for a given market.
+        """
+        path = f'/marketdata/v1/markets/{market_id}/price/time-series'
+
         params = {
-            'fields': fields
+            'interval': interval,
+            'denominatedIn': denominatedIn,
+            'startTime': startTime,
+            'endTime': endTime
         }
-        if page:
-            params['page'] = page
 
         return self._get(path, params=params)
+
+    def get_exchanges(self):
+        """
+        Returns a list of exchanges with market data.
+        """
+        path = '/marketdata/v1/exchanges'
+
+        return self._get(path)
+
+    def get_volume_timeseries_by_exchange(
+            self,
+            exchange_id: str,
+            startTime: str = None,
+            endTime: str = None,
+            interval: str = None
+    ):
+        """
+        Provides time series volume data for a given exchange.
+        """
+        path = f'/marketdata/v1/exchanges/{exchange_id}/volume/time-series'
+
+        params = {
+            'interval': interval,
+            'startTime': startTime,
+            'endTime': endTime
+        }
+
+        return self._get(path, params=params)
+
+    def get_events(self, **kwargs):
+        """
+        Returns a list of all events and the most recent update. If there is no latest update to the event,
+        the response will return updateDetails: null.
+        """
+        path = f'/intel/v1/events'
+
+        return self._get(path, params=kwargs)
+
+    def get_event_history(self, eventId: str):
+        """
+        Returns a single event and its entire history of updates by event ID.
+        """
+        path = f'/intel/v1/events/{eventId}'
+
+        return self._get(path)
+
+    def get_supported_assets(self, **kwargs):
+        """
+        Returns a list of all assets that Messari Intel actively covers.
+        """
+        path = f'/intel/v1/assets'
+
+        return self._get(path, params=kwargs)
