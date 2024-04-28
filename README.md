@@ -34,9 +34,26 @@ from messari import Messari
 
 messari = Messari(key='xxxxxxxxxxxxxxx')
 
-# Get the paginated list of all assets and their metrics and profiles.
+# Get a list of all assets and their market caps, sorted by market cap descending.
 response = messari.get_all_assets()
 
+# Get the ID, name, symbol, slug, market cap, sector, category, and tags for a single asset.
+response = messari.get_asset_by_id(asset_id=asset_id)
+
+# Get market data for a specific asset.
+response = messari.get_market_data_by_asset(asset_id=asset_id)
+
+# Get a list ROI data for all assets.
+response = messari.get_roi()
+
+# Get a single assets ROI data.
+response = messari.get_roi_by_asset(asset_id=asset_id)
+
+# Get a list of market specific data for all markets.
+response = messari.get_markets()
+
+# Get a list of exchanges with market data.
+response = messari.get_exchanges()
 ```
 
 -------
