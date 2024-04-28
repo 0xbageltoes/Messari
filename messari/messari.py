@@ -52,7 +52,8 @@ class Messari:
 
     def get_all_assets(self, **query_params):
         """
-        Get the paginated list of all assets and their metrics and profiles.
+        Returns a list of all assets and their market caps, sorted by market cap descending.
+        Each query parameter supports filtering on multiple, comma-separated values.
 
         :param query_params: dict of query parameters to filter the list
         :return: JSON response
@@ -232,5 +233,30 @@ class Messari:
         Returns a list of all assets that Messari Intel actively covers.
         """
         path = f'/intel/v1/assets'
+
+        return self._get(path, params=kwargs)
+
+    def get_news_feed(self, **kwargs):
+        """
+        Returns a list of all news articles, along with AI-generated summaries for each piece of content.
+        """
+        path = f'/news/v1/news/feed'
+
+        return self._get(path, params=kwargs)
+
+    def get_news_sources(self, **kwargs):
+        """
+        Returns a list of all news sources. Sources are the publications that Messari monitors.
+        """
+        path = f'/news/v1/news/sources'
+
+        return self._get(path, params=kwargs)
+
+    def get_news_assets(self, **kwargs):
+        """
+        Returns a list of all assets that have been tagged in news articles.
+        :return:
+        """
+        path = f'/news/v1/news/assets'
 
         return self._get(path, params=kwargs)
